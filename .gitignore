@@ -1,0 +1,15 @@
+# Entorno virtual
+env/
+venv/
+*.pyc
+__pycache__/
+
+# Archivos sensibles
+.env
+
+
+# Archivos de VSCode
+.vscode/
+
+# Archivos de sistema
+.DS_Store

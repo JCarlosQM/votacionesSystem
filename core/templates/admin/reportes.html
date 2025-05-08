@@ -1,0 +1,245 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Reporte de Votaciones{% endblock %}
+
+{% block content %}
+<div class="mt-4">
+    <div class="text-center mb-4 py-4">
+        <h3 class="fw-bold text-dark">Reporte de Votaciones</h3>
+    </div>
+
+    <!-- Botones -->
+    <div class="d-flex justify-content-between mb-2">
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmLimpiarVotacionesModal">
+            <i class="bi bi-trash"></i> Limpiar Votaciones
+        </button>
+        <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#graficoVotacionesModal">
+            <i class="bi bi-bar-chart"></i> Visualizar Gráfico
+        </button>
+    </div>
+
+    <!-- Totales y Votantes -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="alert alert-primary">
+                <strong>Primer Votante:</strong><br>
+                {% if primer_voto %}
+                    DNI: {{ primer_voto.votante.dni }}<br>
+                    Fecha: {{ primer_voto.fecha|date:"d/m/Y H:i" }}
+                {% else %}
+                    No hay votos registrados.
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="alert alert-success">
+                <strong>Último Votante:</strong><br>
+                {% if ultimo_voto %}
+                    DNI: {{ ultimo_voto.votante.dni }}<br>
+                    Fecha: {{ ultimo_voto.fecha|date:"d/m/Y H:i" }}
+                {% else %}
+                    No hay votos registrados.
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Total de Votos Emitidos -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h5>Total de Votos Emitidos: <span class="badge bg-dark">{{ total_votos }}</span></h5>
+        </div>
+
+        <!-- Exportar a Excel -->
+        <div class="col-md-6 text-md-end">
+            <a href="{% url 'exportar_resultados_excel' %}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel"></i> Exportar
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabla de Votaciones por Lista -->
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-bordered">
+            <thead class="bg-dark text-white">
+                <tr>
+                    <th>Lista</th>
+                    <th>Total de Votos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lista, votos in lista_votos %}
+                    <tr>
+                        <td>{{ lista.nombre }}</td>
+                        <td>{{ votos }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center">No hay datos disponibles.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="d-flex justify-content-center">
+        <nav>
+            <ul class="pagination">
+                {% if lista_votos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ lista_votos.previous_page_number }}">«</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                {% endif %}
+
+                {% for num in lista_votos.paginator.page_range %}
+                    <li class="page-item {% if lista_votos.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endfor %}
+
+                {% if lista_votos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ lista_votos.next_page_number }}">»</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Modal de Confirmación para Limpiar Votaciones -->
+    <div class="modal fade" id="confirmLimpiarVotacionesModal" tabindex="-1" aria-labelledby="confirmLimpiarVotacionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="confirmLimpiarVotacionesLabel">Limpiar Votaciones</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que deseas limpiar todas las votaciones? Esto eliminará todos los votos y marcará a los votantes como "No ha votado".</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmLimpiarVotacionesBtn">Limpiar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para el Gráfico de Votaciones -->
+    <div class="modal fade" id="graficoVotacionesModal" tabindex="-1" aria-labelledby="graficoVotacionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="graficoVotacionesLabel">Votaciones por Lista (Tiempo Real)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <canvas id="graficoBarras" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    $(document).ready(function () {
+        // Confirmar limpieza de votaciones
+        $('#confirmLimpiarVotacionesBtn').on('click', function () {
+            $.ajax({
+                url: "{% url 'limpiar_votaciones' %}",
+                type: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                success: function (response) {
+                    if (response.success) {
+                        $('#confirmLimpiarVotacionesModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Error al limpiar las votaciones: ' + (response.error || 'Desconocido'));
+                    }
+                },
+                error: function () {
+                    alert('Error en la solicitud');
+                }
+            });
+        });
+
+        // Manejar clics en los enlaces de paginación
+        $(document).on('click', '.pagination a.page-link', function (e) {
+            e.preventDefault();
+            let page = $(this).attr('href').split('page=')[1];
+            window.location.href = "?page=" + page;
+        });
+
+        // Cargar y actualizar gráfico en tiempo real
+        function cargarGrafico() {
+            $.ajax({
+                url: "{% url 'obtener_datos_grafico' %}",
+                type: 'GET',
+                success: function (response) {
+                    console.log("Datos recibidos:", response);
+                    const ctx = document.getElementById('graficoBarras').getContext('2d');
+                    
+                    // Verificar si el gráfico ya existe y destruirlo de forma segura
+                    if (window.graficoBarras && typeof window.graficoBarras.destroy === 'function') {
+                        window.graficoBarras.destroy();
+                    }
+
+                    // Crear el nuevo gráfico
+                    window.graficoBarras = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: response.data.labels,
+                            datasets: [{
+                                label: 'Votantes',
+                                data: response.data.data,
+                                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: { display: true, text: 'Número de Votantes' },
+                                },
+                                x: {
+                                    title: { display: true, text: 'Listas' },
+                                }
+                            }
+                        }
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error en la solicitud AJAX:', status, error);
+                    alert('Error en la solicitud del gráfico: ' + error);
+                }
+            });
+        }
+
+        // Cargar gráfico al abrir el modal
+        $('#graficoVotacionesModal').on('shown.bs.modal', function () {
+            cargarGrafico();
+            // Actualizar gráfico cada 5 segundos
+            window.graficoInterval = setInterval(cargarGrafico, 5000);
+        });
+
+        // Detener actualización al cerrar el modal
+        $('#graficoVotacionesModal').on('hidden.bs.modal', function () {
+            if (window.graficoBarras && typeof window.graficoBarras.destroy === 'function') {
+                window.graficoBarras.destroy();
+            }
+            clearInterval(window.graficoInterval);
+            window.graficoBarras = null;
+        });
+    });
+</script>
+{% endblock %}

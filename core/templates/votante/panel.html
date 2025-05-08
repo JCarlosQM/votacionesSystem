@@ -1,0 +1,140 @@
+{% extends 'base_votante.html' %}
+
+{% block title %}Votación - Lista{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="text-center mb-4 text-danger">Bienvenido al Sistema de Votación</h2>
+
+  {% if campaña %}
+    <div class="alert alert-info text-center">
+      <h4 class="fw-bold">{{ campaña.titulo }}</h4>
+      <p class="mb-0">{{ campaña.descripcion }}</p>
+      <small class="text-muted">Desde {{ campaña.fecha_inicio }} hasta {{ campaña.fecha_fin }}</small>
+    </div>
+
+    {% if listas %}
+      <div class="list-group mt-4">
+        {% for lista in listas %}
+        <div class="list-group-item d-flex justify-content-between align-items-center shadow-sm border-0 mb-2">
+          <div class="d-flex align-items-center">
+            {% if lista.logo %}
+            <img src="{{ lista.logo.url }}" alt="{{ lista.nombre }}" class="img-thumbnail mb-2" style="width: 70px; height: 70px; object-fit: cover;">
+            {% endif %}
+            <div class="m-3">
+              <h5 class="mb-1 text-dark">{{ lista.nombre }}</h5>
+              <p class="mb-0 text-muted">{{ lista.mensaje|truncatewords:20 }}</p>
+            </div>
+          </div>
+          <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#dniModal" data-lista-id="{{ lista.id }}" data-lista-nombre="{{ lista.nombre }}">
+            <i class="bi bi-check-circle"></i> Votar
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-exclamation-circle display-1 text-warning mb-4"></i>
+        <h3 class="mb-3 fw-bold">¡Ups! No hay listas registradas</h3>
+        <p class="text-muted fs-5">Vuelve más tarde. El administrador aún no ha agregado listas para esta campaña.</p>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-exclamation-circle display-1 text-warning mb-4"></i>
+      <h3 class="mb-3 fw-bold">¡Ups! No hay votaciones activas</h3>
+      <p class="text-muted fs-5">Vuelve más tarde, el administrador aún no ha habilitado ningún proceso de votación.</p>
+      <div class="spinner-border text-primary mt-4" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal para ingreso de DNI -->
+<div class="modal fade" id="dniModal" tabindex="-1" aria-labelledby="dniModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="dniModalLabel">Confirmar Voto</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="POST" action="" id="dniForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p class="mb-3">Estás votando por: <strong id="listaNombre"></strong></p>
+          <div class="mb-3">
+            <label for="dniInput" class="form-label text-dark">Ingresa tu DNI</label>
+            <input type="text" class="form-control" name="dni" id="dniInput" maxlength="8" required autocomplete="off">
+          </div>
+          <input type="hidden" name="lista_id" id="listaIdInput">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger w-100">Confirmar Voto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para mostrar los mensajes -->
+<div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header" id="alertModalHeader">
+        <div class="text-center">
+          <h5 class="modal-title" id="alertModalLabel">Mensaje</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p id="alertMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modal = document.getElementById('dniModal');
+  modal.addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var listaId = button.getAttribute('data-lista-id');
+    var listaNombre = button.getAttribute('data-lista-nombre');
+
+    // Actualiza contenido dinámico del modal
+    document.getElementById('listaNombre').textContent = listaNombre;
+    document.getElementById('listaIdInput').value = listaId;
+
+    // Establece la acción del formulario
+    var form = document.getElementById('dniForm');
+    form.action = `/votar/${listaId}/`;
+  });
+
+  {% if messages %}
+    {% for message in messages %}
+      var modalAlert = new bootstrap.Modal(document.getElementById('alertModal'), {
+        backdrop: 'static',
+        keyboard: false
+      });
+      document.getElementById('alertMessage').textContent = '{{ message }}';
+      if ('{{ message.tags }}' === 'error') {
+        document.getElementById('alertModalHeader').classList.add('bg-danger', 'text-white');
+      } else if ('{{ message.tags }}' === 'warning') {
+        document.getElementById('alertModalHeader').classList.add('bg-warning', 'text-dark');
+      } else if ('{{ message.tags }}' === 'success') {
+        document.getElementById('alertModalHeader').classList.add('bg-success', 'text-white');
+      }
+      modalAlert.show();
+    {% endfor %}
+  {% endif %}
+});
+</script>
+{% endblock %}

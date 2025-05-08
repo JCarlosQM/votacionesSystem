@@ -1,0 +1,44 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="text-center mb-5">
+    <h3 class="fw-bold">Bienvenido al Panel de Administración</h3>
+    <p class="text-muted">Resumen general del sistema</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card text-bg-primary h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Listas</h5>
+          <p class="card-text">Gestiona los usuarios registrados en el sistema.</p>
+          <a href="{{ listar_listas_url }}" class="btn btn-light btn-sm">Ver más</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card text-bg-success h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Reportes</h5>
+          <p class="card-text">Accede a reportes actualizados y métricas clave.</p>
+          <a href="{% url 'reportes' %}" class="btn btn-light btn-sm">Ver más</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card text-bg-warning h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Votantes</h5>
+          <p class="card-text">Actualiza las preferencias y ajustes del sistema.</p>
+          <a href="{% url 'lista_votantes' %}" class="btn btn-light btn-sm">Ver más</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
